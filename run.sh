@@ -14,6 +14,42 @@ ACTION="${1:-install}"
 LANG_CODE="${2:-zh-CN}"
 case "$LANG_CODE" in zh-CN|zh-TW|zh-HK) ;; *) echo "无效语言: $LANG_CODE (应为 zh-CN / zh-TW / zh-HK)" >&2; exit 1 ;; esac
 
+# ---- 运行环境预检：本 skill 只能在「本机 macOS + 未沙箱」的会话里跑。
+# 云端/网页版会话（Linux 容器）、sandbox 模式、Linux/WSL/SSH 一律不可用：
+# 沙箱里 /Applications 只读，且 launchctl 脱离进程树也逃不出沙箱 profile。
+preflight() {
+  if [ "$(uname -s)" != "Darwin" ]; then
+    echo "❌ 当前不是 macOS（uname -s = $(uname -s)），本 skill 只能在你的 Mac 本机运行。" >&2
+    echo "   云端/网页版会话（Linux 容器）、Linux、WSL、远程 SSH 主机均不可用。" >&2
+    echo "   请在你自己的 Mac 上打开「终端」(Terminal.app)，手动执行：bash $0 $ACTION $LANG_CODE" >&2
+    exit 2
+  fi
+  if [ ! -d /Applications/Claude.app ]; then
+    echo "❌ 未找到 /Applications/Claude.app。请确认 Claude Desktop 已安装在本机。" >&2
+    exit 2
+  fi
+  for tool in codesign launchctl; do
+    command -v "$tool" >/dev/null 2>&1 || { echo "❌ 缺少系统工具 $tool，无法继续。" >&2; exit 2; }
+  done
+  # 写权限探测：沙箱会话里 /Applications 只读，install/restore 必然死在半路
+  local probe="/Applications/.claude-zh-write-test.$$"
+  if touch "$probe" 2>/dev/null; then
+    rm -f "$probe"
+  else
+    case "$ACTION" in
+      install|restore)
+        echo "❌ /Applications 不可写：当前 Bash 运行在沙箱（或权限不足）里。" >&2
+        echo "   沙箱会拦截补丁对 /Applications/Claude.app 的写入，launchctl 脱离进程树也无法绕过。" >&2
+        echo "   请在 macOS 自带的「终端」(Terminal.app) 中手动执行：bash $0 $ACTION $LANG_CODE" >&2
+        exit 2 ;;
+      *)
+        echo "⚠️  /Applications 不可写：当前应为沙箱/受限环境，install 与 restore 不可用。" >&2 ;;
+    esac
+  fi
+}
+
+preflight
+
 # bash 不读 .zshenv：从 macOS 系统代理配置取 http(s) 代理，GitHub 访问需要
 if [ -z "${HTTPS_PROXY:-}" ] && command -v scutil >/dev/null 2>&1; then
   _ph="$(scutil --proxy | awk '$1=="HTTPSProxy"{h=$3} $1=="HTTPSPort"{p=$3} $1=="HTTPSEnable"&&$3==1{en=1} END{if(en&&h&&p)print h":"p}')"

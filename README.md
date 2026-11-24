@@ -38,9 +38,14 @@ bash run.sh restore   # 从最近备份还原官方版
 
 ## 前提
 
-- macOS，`/Applications` 归 admin 组可写（无需 sudo）
+- **本机 macOS**，且运行会话的 Bash **未沙箱**
+  （云端/网页版会话、sandbox 模式、Linux/WSL/远程 SSH 均不可用）
+- `/Applications` 归 admin 组可写（无需 sudo）
 - `git` + `python3`
 - 访问 GitHub（脚本会自动读取系统代理设置）
+
+`run.sh` 启动时会自动预检以上环境；不满足会报错退出，并给出在 Mac「终端」里手动执行的指引。
+若你是在云端会话或开启沙箱的会话里触发本 skill，请改在 Terminal.app 中手动运行。
 
 ## 注意
 

@@ -8,6 +8,23 @@ description: Use when Claude Desktop on macOS shows English again after an offic
 社区补丁 javaht/claude-desktop-zh-cn 的安装/还原流程。补丁会替换并 ad-hoc 重签
 `/Applications/Claude.app`，而**你的会话就运行在这个 app 里**——这是本 skill 全部规则的原因。
 
+## 运行环境硬性前提（先判断，再动手）
+
+只能在**本机 macOS**、且 Bash **未沙箱**的会话里运行。`run.sh` 每次启动都会自动预检
+（`uname -s` / `Claude.app` 是否存在 / `codesign`、`launchctl` / 能否写 `/Applications`），
+不满足会直接 `exit 2` 并打印指引。
+
+| 环境 | 为什么不行 |
+| --- | --- |
+| 云端 / 网页版会话（claude.ai/code、远程会话） | shell 是 Linux 容器，没有 `/Applications`、`codesign`、`launchctl` |
+| 开启沙箱的 Claude Code 会话 | `/Applications` 只读；`launchctl` 脱离进程树也逃不出沙箱 profile |
+| Linux / WSL / 远程 SSH 主机 | 没有 macOS 应用目录 |
+
+**预检失败时的正确做法**：不要改脚本硬绕过，也不要反复重试。直接告诉用户
+「当前会话环境不支持」，请他在 Mac 自带的「终端」(Terminal.app) 里手动执行
+`bash ~/.claude/skills/patching-claude-desktop-zh/run.sh install`
+（终端独立于 Claude 进程，安全且不受 sandbox 限制）。
+
 ## 核心事实（违反任何一条都会造成事故）
 
 1. **绝不在自己的 Bash 工具或 Terminal 面板里前台跑 install/restore。**
