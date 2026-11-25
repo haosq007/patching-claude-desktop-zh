@@ -55,6 +55,15 @@ bash ~/.claude/skills/patching-claude-desktop-zh/run.sh <action> [lang]
 | `install` | 拉最新 → 备份现 app → 打补丁 → 重开 | `zh-CN`（可 zh-TW/zh-HK） |
 | `restore` | 从最近备份还原官方版 → 重开 | — |
 
+## 自动重打（LaunchAgent）
+
+`install-autopatch.sh install` 会在 `~/Library/LaunchAgents/` 安装
+`com.haosq.claude-zh-autopatch`：登录时与每 30 分钟调用 `autopatch.sh`，
+**签名是官方版才**触发 `run.sh install`，已汉化直接跳过。另有 `status` / `uninstall`。
+
+【禁止】用 Claude 插件 hook（session.start 等）实现这件事：补丁会退出 Claude Desktop，
+会把触发它的会话一起杀掉；正确位置是 LaunchAgent。
+
 `install`/`restore` 会先 `git fetch --depth 1 + reset` 更新到补丁仓库最新版（词表跟随上游）；
 仓库有未提交的本地词表改动时会拒绝，需用户先处理或设 `CLAUDE_ZH_FORCE_UPDATE=1`。
 内置 pidfile 单实例守卫（并发第二次会被拒绝）、GitHub 访问自动跟随系统代理。

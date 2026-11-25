@@ -36,6 +36,27 @@ bash run.sh restore   # 从最近备份还原官方版
 
 `install` / `restore` 会让 Claude Desktop 在约 20 秒后退出、约 8-10 分钟后自动重开。
 
+## 自动重打（可选，推荐常开）
+
+被官方自动更新覆盖后，让系统自己把汉化补回来，不用每次手动重跑：
+
+```bash
+bash install-autopatch.sh install    # 安装：登录时检查一次 + 之后每 30 分钟一次
+bash install-autopatch.sh status     # 查看是否在跑、最近日志
+bash install-autopatch.sh uninstall  # 卸载
+```
+
+它只做三件事：读签名 → 判定是官方版才调用 `run.sh install` → 打完自动重开。细节：
+
+- 已是汉化版时直接跳过，不产生任何动作
+- 一轮失败退避 1 小时，避免网络问题导致每 30 分钟反复重试
+- 先做「版本 3 秒内不变」的稳定性复查，不会在 Squirrel 替换 bundle 的中途插手
+- 触发时发一条系统通知，之后约 8-10 分钟自动完成并重开
+- 日志：`~/Library/Application Support/claude-zh-autopatch/autopatch.log`
+
+> 为什么不用 Claude 插件 hook 做这件事：补丁会退出 Claude Desktop，会把触发它的会话一起杀掉。
+> LaunchAgent 独立于 app 与终端，才是正确的位置。
+
 ## 前提
 
 - **本机 macOS**，且运行会话的 Bash **未沙箱**
