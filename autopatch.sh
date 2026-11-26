@@ -4,8 +4,15 @@
 # 只读检测 -> 命中才调用 run.sh install；run.sh 自己会脱离 app 进程树并立刻返回。
 set -uo pipefail
 
-SKILL_DIR="${CLAUDE_ZH_SKILL_DIR:-$HOME/.claude/skills/patching-claude-desktop-zh}"
-RUN="$SKILL_DIR/run.sh"
+# 优先用与自身同目录的 run.sh（安装到 Application Support 的自包含副本走这条路）；
+# 否则回退到 skill 目录。软链到 ~/Documents 时 launchd 会被 TCC 拒绝，必须用副本。
+SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+if [ -n "$SELF_DIR" ] && [ -x "$SELF_DIR/run.sh" ]; then
+  RUN="$SELF_DIR/run.sh"
+else
+  SKILL_DIR="${CLAUDE_ZH_SKILL_DIR:-$HOME/.claude/skills/patching-claude-desktop-zh}"
+  RUN="$SKILL_DIR/run.sh"
+fi
 REPO_DIR="${CLAUDE_ZH_REPO:-$HOME/Tools/claude-desktop-zh-cn}"
 STATE_DIR="${CLAUDE_ZH_AUTOPATCH_STATE:-$HOME/Library/Application Support/claude-zh-autopatch}"
 STATE="$STATE_DIR/last-attempt"

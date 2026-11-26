@@ -12,7 +12,11 @@ do_install() {
   [ "$(uname -s)" = "Darwin" ] || { echo "仅支持 macOS" >&2; exit 1; }
   [ -x "$SKILL_DIR/autopatch.sh" ] || { echo "缺少 autopatch.sh：$SKILL_DIR" >&2; exit 1; }
 
-  mkdir -p "$HOME/Library/LaunchAgents" "$STATE_DIR"
+  mkdir -p "$HOME/Library/LaunchAgents" "$STATE_DIR/bin"
+  # 必须用自包含副本：skill 目录常是软链指向 ~/Documents，而 launchd 没有「完全磁盘访问」
+  # 权限，TCC 会拒绝执行那里的脚本（Operation not permitted）。Application Support 不受此限。
+  /bin/cp -f "$SKILL_DIR/autopatch.sh" "$SKILL_DIR/run.sh" "$STATE_DIR/bin/"
+  /bin/chmod +x "$STATE_DIR/bin/autopatch.sh" "$STATE_DIR/bin/run.sh"
   cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -23,7 +27,7 @@ do_install() {
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>$SKILL_DIR/autopatch.sh</string>
+        <string>$STATE_DIR/bin/autopatch.sh</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -41,6 +45,7 @@ EOF
   launchctl enable "gui/$UID_N/$LABEL" 2>/dev/null || true
   launchctl kickstart -k "gui/$UID_N/$LABEL" 2>/dev/null || true
   echo "✅ 已安装自动重打：登录时检查一次，之后每 30 分钟检查一次"
+  echo "   运行副本: $STATE_DIR/bin/（避开 ~/Documents 的 TCC 限制）"
   echo "   日志: $STATE_DIR/autopatch.log"
   echo "   卸载: bash $SKILL_DIR/install-autopatch.sh uninstall"
 }

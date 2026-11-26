@@ -53,6 +53,9 @@ bash install-autopatch.sh uninstall  # 卸载
 - 先做「版本 3 秒内不变」的稳定性复查，不会在 Squirrel 替换 bundle 的中途插手
 - 触发时发一条系统通知，之后约 8-10 分钟自动完成并重开
 - 日志：`~/Library/Application Support/claude-zh-autopatch/autopatch.log`
+- 运行副本放在 `~/Library/Application Support/claude-zh-autopatch/bin/`：如果 skill 装在
+  `~/Documents` 等 TCC 保护目录下（含软链），launchd 会报 `Operation not permitted`，
+  用副本可绕开该限制
 
 > 为什么不用 Claude 插件 hook 做这件事：补丁会退出 Claude Desktop，会把触发它的会话一起杀掉。
 > LaunchAgent 独立于 app 与终端，才是正确的位置。
